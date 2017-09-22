@@ -1,31 +1,33 @@
 port module Main exposing (main)
 
-import Benchmark exposing (Benchmark, benchmark3)
-import Benchmark.Runner.Node exposing (BenchmarkProgram, run)
+import Benchmark.LowLevel exposing (benchmark3)
+import Benchmark.Runner.Node as Benchmark exposing (Benchmark, BenchmarkProgram, run)
 import Json.Encode exposing (Value)
 
 
 main : BenchmarkProgram
 main =
-    run emit benchmarks
+    run emit <| Benchmark.group "many" [ benchmarks (+) "(+)", benchmarks (-) "(-)" ]
 
 
-doCompare : Int -> Benchmark
-doCompare size =
+doCompare : (Int -> Int -> Int) -> Int -> Benchmark
+doCompare op size =
     let
         input =
             List.range 0 size
     in
     Benchmark.compare ("size: " ++ toString size)
-        (benchmark3 "foldl" List.foldl (+) 0 input)
-        (benchmark3 "foldr" List.foldr (+) 0 input)
+        [ benchmark3 "foldl" List.foldl op 0 input
+        , benchmark3 "foldr" List.foldr op 0 input
+        ]
 
 
-benchmarks : Benchmark
-benchmarks =
-    [ 1, 100, 10000 ]
-        |> List.map doCompare
-        |> Benchmark.describe "Benching folds"
+benchmarks : (Int -> Int -> Int) -> String -> Benchmark
+benchmarks op desc =
+    Benchmark.series ("folds : " ++ desc)
+        (\s -> "size " ++ toString s)
+        (doCompare op)
+        [ 1, 100, 10000 ]
 
 
 port emit : Value -> Cmd msg
