@@ -16,7 +16,7 @@ doCompare op size =
         input =
             List.range 0 size
     in
-    Benchmark.compare ("size: " ++ toString size)
+    Benchmark.compare
         [ benchmark3 "foldl" List.foldl op 0 input
         , benchmark3 "foldr" List.foldr op 0 input
         ]

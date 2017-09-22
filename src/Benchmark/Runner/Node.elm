@@ -19,11 +19,11 @@ group =
     Group
 
 
-compare : String -> List LowLevel.Benchmark -> Benchmark
-compare name benches =
+compare : List LowLevel.Benchmark -> Benchmark
+compare benches =
     case benches of
         x :: y :: xs ->
-            Compare name x (y :: xs)
+            Compare x (y :: xs)
 
         _ ->
             Debug.crash "you need to provide at least two benchmarks to compare"
@@ -38,7 +38,7 @@ series name toDescription toBenchmark cases =
 
 type Benchmark
     = Single LowLevel.Benchmark
-    | Compare String LowLevel.Benchmark (List LowLevel.Benchmark)
+    | Compare LowLevel.Benchmark (List LowLevel.Benchmark)
     | Group String (List Benchmark)
     | Series String (Dict String Benchmark)
 
@@ -71,13 +71,13 @@ step structure =
         Single bench ->
             LowLevel.step bench |> Maybe.map (Task.map Single)
 
-        Compare name baseline cases ->
+        Compare baseline cases ->
             case ( LowLevel.step baseline, maybeTaskList LowLevel.step cases ) of
                 ( Nothing, Nothing ) ->
                     Nothing
 
                 ( left, right ) ->
-                    Task.map2 (Compare name)
+                    Task.map2 Compare
                         (Maybe.withDefault (Task.succeed baseline) left)
                         (Maybe.withDefault (Task.succeed cases) right)
                         |> Just
@@ -204,7 +204,7 @@ stats structure =
         Single bench ->
             LowLevel.status bench |> statusToStats
 
-        Compare _ baseLine cases ->
+        Compare baseLine cases ->
             List.foldr combine
                 (LowLevel.status baseLine |> statusToStats)
                 (List.map (LowLevel.status >> statusToStats) cases)
@@ -387,8 +387,8 @@ makePrettyIntroLines structure =
         Single benchmark ->
             [ LowLevel.name benchmark ]
 
-        Compare comparison baseline cases ->
-            ("Compare: " ++ comparison)
+        Compare baseline cases ->
+            "Compare:"
                 :: (("→ " ++ LowLevel.name baseline) |> indent 1)
                 :: List.map (LowLevel.name >> (++) "↝ " >> indent 1) cases
 
@@ -416,11 +416,10 @@ encode benchmark =
         Single bench ->
             encodeBench bench
 
-        Compare name baseline cases ->
+        Compare baseline cases ->
             Maybe.map
                 (\baseObject ->
-                    [ ( "name", Json.Encode.string name )
-                    , ( "baseline", baseObject )
+                    [ ( "baseline", baseObject )
                     , ( "cases", Json.Encode.list (List.filterMap encodeBench cases) )
                     ]
                         |> Json.Encode.object
