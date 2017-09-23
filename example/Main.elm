@@ -25,7 +25,7 @@ doCompare op size =
 benchmarks : (Int -> Int -> Int) -> String -> Benchmark
 benchmarks op desc =
     Benchmark.series ("folds : " ++ desc)
-        (\s -> "size " ++ toString s)
+        toString
         (doCompare op)
         [ 1, 100, 10000 ]
 

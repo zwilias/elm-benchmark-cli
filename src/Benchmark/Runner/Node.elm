@@ -484,7 +484,7 @@ encodeStats status =
                 |> Just
 
         LowLevel.Success runs samples ->
-            [ ( "runs", Json.Encode.int runs )
+            [ ( "sampleSize", Json.Encode.int runs )
             , ( "samples", Json.Encode.list (List.map Json.Encode.float samples) )
             ]
                 |> Just
